@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 240" role="img" aria-labelledby="title desc">
+  <title id="title">ECDSA Nonce Reuse Tool logo</title>
+  <desc id="desc">A broken cryptographic lock with a nonce orbit mark and wordmark.</desc>
+  <defs>
+    <linearGradient id="shield" x1="60" x2="190" y1="35" y2="205" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1b2228"/>
+      <stop offset="1" stop-color="#111416"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="68" x2="176" y1="74" y2="176" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FAC775"/>
+      <stop offset="0.55" stop-color="#E24B4A"/>
+      <stop offset="1" stop-color="#378ADD"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="240" rx="36" fill="#0f0f0f"/>
+  <g transform="translate(38 22)">
+    <path d="M104 6 194 46v66c0 61-36 105-90 124C50 217 14 173 14 112V46L104 6Z" fill="url(#shield)" stroke="#2b333a" stroke-width="6"/>
+    <path d="M70 105V77c0-33 26-59 61-59 28 0 51 17 58 43" fill="none" stroke="#FAC775" stroke-width="18" stroke-linecap="round"/>
+    <path d="M74 100h118c12 0 22 10 22 22v58c0 12-10 22-22 22H74c-12 0-22-10-22-22v-58c0-12 10-22 22-22Z" fill="#171717" stroke="#E24B4A" stroke-width="12"/>
+    <circle cx="133" cy="145" r="16" fill="#E24B4A"/>
+    <path d="M133 161v28" stroke="#E24B4A" stroke-width="12" stroke-linecap="round"/>
+    <path d="M39 54 20 35M207 54l22-22M37 185 17 205M210 184l22 20" stroke="#378ADD" stroke-width="11" stroke-linecap="round"/>
+    <path d="M79 74c25-22 73-25 103 6" fill="none" stroke="url(#accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="10 12"/>
+  </g>
+  <g fill="#f0f0f0" font-family="JetBrains Mono, Fira Code, Cascadia Code, Consolas, monospace">
+    <text x="286" y="104" font-size="44" font-weight="700" letter-spacing="0">ECDSA Nonce Reuse</text>
+    <text x="288" y="151" font-size="24" fill="#9aa3ad">Private key recovery demo</text>
+    <text x="288" y="188" font-size="18" fill="#FAC775">k reuse -> d recovery</text>
+  </g>
+</svg>

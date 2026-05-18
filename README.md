@@ -1,5 +1,7 @@
 # ECDSA Nonce Reuse Educational Tool
 
+![ECDSA Nonce Reuse Tool logo](assets/logo.svg)
+
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-378ADD)](https://katiyar-crypto.github.io/ecdsa-nonce-reuse-tool/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-FAC775)](LICENSE)
 [![Static](https://img.shields.io/badge/App-Static%20HTML-1D9E75)](index.html)
