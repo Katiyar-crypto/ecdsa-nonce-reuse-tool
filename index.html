@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ECDSA Nonce Reuse Attack — Educational Tool</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f0f;
+      --bg2: #1a1a1a;
+      --bg3: #242424;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.15);
+      --text: #f0f0f0;
+      --text2: #888;
+      --text3: #555;
+      --amber: #FAC775;
+      --amber-bg: rgba(250,199,117,0.1);
+      --red: #E24B4A;
+      --red-bg: rgba(226,75,74,0.1);
+      --blue: #378ADD;
+      --blue-bg: rgba(55,138,221,0.1);
+      --green: #639922;
+      --green-bg: rgba(99,153,34,0.1);
+      --teal: #1D9E75;
+      --teal-bg: rgba(29,158,117,0.1);
+      --radius: 8px;
+      --radius-lg: 12px;
+      --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 0.5px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 10;
+    }
+    .logo {
+      width: 32px; height: 32px;
+      border: 0.5px solid var(--border2);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; color: var(--red);
+    }
+    .header-title { font-size: 14px; font-weight: 500; letter-spacing: 0.02em; }
+    .header-sub { font-size: 12px; color: var(--text2); font-family: var(--sans); margin-top: 2px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-family: var(--sans);
+      padding: 3px 8px; border-radius: 4px; margin-left: auto;
+    }
+    .badge-danger { background: var(--red-bg); color: var(--red); border: 0.5px solid rgba(226,75,74,0.3); }
+    .badge-info { background: var(--blue-bg); color: var(--blue); border: 0.5px solid rgba(55,138,221,0.3); }
+    .badge-success { background: var(--green-bg); color: var(--green); border: 0.5px solid rgba(99,153,34,0.3); }
+    .badge-warn { background: var(--amber-bg); color: var(--amber); border: 0.5px solid rgba(250,199,117,0.3); }
+
+    /* ── Layout ── */
+    .main { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 65px); }
+
+    /* ── Sidebar ── */
+    nav {
+      border-right: 0.5px solid var(--border);
+      padding: 1.5rem 0;
+      position: sticky;
+      top: 65px;
+      height: calc(100vh - 65px);
+      overflow-y: auto;
+    }
+    .nav-section { padding: 0 1rem; margin-bottom: 1.5rem; }
+    .nav-label { font-size: 10px; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; font-family: var(--sans); padding: 0 0.5rem; margin-bottom: 6px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 0.5rem; border-radius: var(--radius);
+      font-size: 12px; font-family: var(--sans);
+      color: var(--text2); cursor: pointer; border: none;
+      background: transparent; width: 100%; text-align: left;
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-item:hover { background: var(--bg3); color: var(--text); }
+    .nav-item.active { background: var(--bg3); color: var(--text); }
+    .nav-item i { font-size: 15px; }
+
+    /* ── Content ── */
+    .content { padding: 2rem; max-width: 820px; }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .page-header { margin-bottom: 2rem; }
+    .page-header h1 { font-size: 20px; font-weight: 500; margin-bottom: 6px; font-family: var(--sans); }
+    .page-header p { font-size: 13px; color: var(--text2); font-family: var(--sans); line-height: 1.6; }
+
+    /* ── Curve selector ── */
+    .curve-selector { margin-bottom: 1.5rem; }
+    .curve-selector-label { font-size: 10px; color: var(--text2); font-family: var(--sans); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; display: block; }
+    .curve-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+    .curve-card {
+      background: var(--bg2); border: 0.5px solid var(--border);
+      border-radius: var(--radius); padding: 10px 12px;
+      cursor: pointer; transition: border-color 0.15s, background 0.15s;
+      text-align: left;
+    }
+    .curve-card:hover { border-color: var(--border2); background: var(--bg3); }
+    .curve-card.selected { border-color: var(--blue); background: rgba(55,138,221,0.08); }
+    .curve-card-name { font-size: 12px; font-weight: 500; color: var(--text); font-family: var(--mono); margin-bottom: 3px; }
+    .curve-card-meta { font-size: 11px; color: var(--text2); font-family: var(--sans); line-height: 1.4; }
+    .curve-card-use { font-size: 10px; color: var(--text3); font-family: var(--sans); margin-top: 4px; }
+    .curve-n-preview {
+      margin-top: 10px; padding: 8px 12px;
+      background: var(--bg3); border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 11px; font-family: var(--mono); color: var(--amber);
+      word-break: break-all; line-height: 1.6;
+      display: none;
+    }
+    .curve-n-preview.show { display: block; }
+    .curve-n-label { font-size: 10px; color: var(--text3); font-family: var(--sans); margin-bottom: 4px; }
+    .divider { height: 0.5px; background: var(--border); margin: 1.5rem 0; }
+
+    /* ── Input grid ── */
+    .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5rem; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 10px; color: var(--text2); font-family: var(--sans); letter-spacing: 0.08em; text-transform: uppercase; }
+    .field input {
+      font-family: var(--mono); font-size: 12px;
+      padding: 9px 12px;
+      background: var(--bg2);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+    .field input:focus { outline: none; border-color: var(--border2); }
+    .field input::placeholder { color: var(--text3); }
+    .full { grid-column: 1 / -1; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      font-family: var(--sans); font-size: 13px;
+      padding: 10px 20px; border-radius: var(--radius);
+      cursor: pointer; border: 0.5px solid var(--border2);
+      background: transparent; color: var(--text);
+      transition: background 0.15s;
+    }
+    .btn:hover { background: var(--bg3); }
+    .btn-primary { background: var(--bg3); border-color: var(--border2); }
+    .btn-demo { font-size: 11px; padding: 5px 12px; color: var(--text2); margin-bottom: 1rem; }
+
+    .btn-row { display: flex; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+
+    /* ── Results ── */
+    .results { display: none; }
+    .results.show { display: block; animation: fadeIn 0.2s ease; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    .result-grid { display: grid; gap: 10px; }
+    .result-card {
+      background: var(--bg2); border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      border-left: 2.5px solid var(--border2);
+    }
+    .result-card.nonce { border-color: var(--amber); }
+    .result-card.key { border-color: var(--red); }
+    .result-card.ascii { border-color: var(--teal); }
+    .result-label { font-size: 10px; color: var(--text2); font-family: var(--sans); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .result-val { font-size: 13px; color: var(--text); word-break: break-all; line-height: 1.7; }
+    .result-val.hex-val { color: var(--red); }
+    .result-val.ascii-val { color: var(--teal); }
+    .result-val.nonce-val { color: var(--amber); }
+
+    .error-card {
+      background: var(--red-bg); border: 0.5px solid rgba(226,75,74,0.3);
+      border-radius: var(--radius); padding: 1rem 1.25rem;
+      font-size: 13px; color: var(--red); font-family: var(--sans);
+      display: none; margin-bottom: 1rem;
+    }
+    .error-card.show { display: block; }
+
+    /* ── How it works ── */
+    .section { margin-bottom: 2.5rem; }
+    .section h2 { font-size: 14px; font-weight: 500; color: var(--text); font-family: var(--sans); margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+    .section h2::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
+    .prose { font-size: 13px; color: var(--text2); font-family: var(--sans); line-height: 1.8; margin-bottom: 1rem; }
+    .formula-box {
+      background: var(--bg2); border: 0.5px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1.5rem;
+      font-size: 13px; line-height: 2.2;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .f-muted { color: var(--text3); }
+    .f-amber { color: var(--amber); }
+    .f-red { color: var(--red); }
+
+    .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 1rem; }
+    .flow-step {
+      font-size: 12px; font-family: var(--sans);
+      padding: 5px 12px; border-radius: 4px;
+    }
+    .flow-arrow { color: var(--text3); font-size: 18px; }
+
+    /* ── Mitigation ── */
+    .mit-card {
+      background: var(--bg2); border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg); padding: 1.25rem 1.5rem;
+      margin-bottom: 12px;
+    }
+    .mit-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+    .mit-title { font-size: 14px; font-weight: 500; font-family: var(--sans); color: var(--text); }
+    .mit-desc { font-size: 13px; color: var(--text2); font-family: var(--sans); line-height: 1.7; margin-bottom: 10px; }
+    .code-block {
+      background: var(--bg3); border: 0.5px solid var(--border);
+      border-radius: var(--radius); padding: 1rem 1.25rem;
+      font-size: 12px; line-height: 1.8; color: #b0c4de;
+      white-space: pre; overflow-x: auto;
+    }
+    .c-comment { color: var(--text3); }
+    .c-kw { color: var(--blue); }
+    .c-str { color: var(--teal); }
+    .c-fn { color: var(--amber); }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .main { grid-template-columns: 1fr; }
+      nav { display: none; }
+      .content { padding: 1.25rem; }
+      .input-grid { grid-template-columns: 1fr; }
+      header { padding: 1rem; }
+      .badge { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><i class="ti ti-lock-open-off"></i></div>
+  <div>
+    <div class="header-title">ECDSA Nonce Reuse Attack</div>
+    <div class="header-sub">Private key recovery demonstration — college security project</div>
+  </div>
+  <span class="badge badge-danger"><i class="ti ti-alert-triangle" style="font-size:12px"></i> CVE-class vulnerability</span>
+  <span class="badge badge-info" style="margin-left:6px"><i class="ti ti-school" style="font-size:12px"></i> Educational</span>
+</header>
+
+<div class="main">
+  <nav>
+    <div class="nav-section">
+      <div class="nav-label">Tool</div>
+      <button class="nav-item active" onclick="showPage('attack', this)">
+        <i class="ti ti-terminal-2"></i> Attack Tool
+      </button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Learn</div>
+      <button class="nav-item" onclick="showPage('how', this)">
+        <i class="ti ti-math-function"></i> How It Works
+      </button>
+      <button class="nav-item" onclick="showPage('mitigate', this)">
+        <i class="ti ti-shield-check"></i> Mitigation
+      </button>
+      <button class="nav-item" onclick="showPage('refs', this)">
+        <i class="ti ti-book"></i> References
+      </button>
+    </div>
+  </nav>
+
+  <div class="content">
+
+    <!-- ══════════════ ATTACK PAGE ══════════════ -->
+    <div class="page active" id="page-attack">
+      <div class="page-header">
+        <h1>Private Key Recovery</h1>
+        <p>Select a curve to auto-fill the order n, then enter the two signatures that share the same nonce k. The tool recovers k and the private key d.</p>
+      </div>
+
+      <!-- Step 1: Curve selector -->
+      <div class="curve-selector">
+        <span class="curve-selector-label"><i class="ti ti-circle-number-1" style="font-size:13px;vertical-align:-1px;margin-right:4px"></i>Step 1 — Select elliptic curve</span>
+        <div class="curve-cards">
+          <button class="curve-card" onclick="selectCurve('secp256k1', this)">
+            <div class="curve-card-name">secp256k1</div>
+            <div class="curve-card-meta">256-bit prime</div>
+            <div class="curve-card-use">Bitcoin · Ethereum</div>
+          </button>
+          <button class="curve-card" onclick="selectCurve('p256', this)">
+            <div class="curve-card-name">P-256</div>
+            <div class="curve-card-meta">256-bit prime</div>
+            <div class="curve-card-use">TLS · HTTPS · FIDO2</div>
+          </button>
+          <button class="curve-card" onclick="selectCurve('p384', this)">
+            <div class="curve-card-name">P-384</div>
+            <div class="curve-card-meta">384-bit prime</div>
+            <div class="curve-card-use">NSA Suite B · Gov</div>
+          </button>
+          <button class="curve-card" onclick="selectCurve('p521', this)">
+            <div class="curve-card-name">P-521</div>
+            <div class="curve-card-meta">521-bit prime</div>
+            <div class="curve-card-use">High-security TLS</div>
+          </button>
+          <button class="curve-card" onclick="selectCurve('secp192k1', this)">
+            <div class="curve-card-name">secp192k1</div>
+            <div class="curve-card-meta">192-bit prime</div>
+            <div class="curve-card-use">Legacy / IoT</div>
+          </button>
+          <button class="curve-card" onclick="selectCurve('custom', this)">
+            <div class="curve-card-name">Custom</div>
+            <div class="curve-card-meta">Enter manually</div>
+            <div class="curve-card-use">CTF / research</div>
+          </button>
+        </div>
+
+        <div class="curve-n-preview" id="curve-preview">
+          <div class="curve-n-label">Curve order n (auto-filled below)</div>
+          <div id="curve-preview-val"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Step 2: Signature inputs -->
+      <span class="curve-selector-label" style="display:block;margin-bottom:12px">
+        <i class="ti ti-circle-number-2" style="font-size:13px;vertical-align:-1px;margin-right:4px"></i>Step 2 — Enter signature values
+      </span>
+
+      <div class="input-grid">
+        <div class="field full">
+          <label>Curve order n <span id="n-source" style="color:var(--blue);font-size:10px;margin-left:6px"></span></label>
+          <input id="n" placeholder="select a curve above, or enter manually" />
+        </div>
+        <div class="field">
+          <label>Message hash h1</label>
+          <input id="h1" placeholder="integer or 0x hex" />
+        </div>
+        <div class="field">
+          <label>Message hash h2</label>
+          <input id="h2" placeholder="integer or 0x hex" />
+        </div>
+        <div class="field full">
+          <label>Shared r value (same nonce → same r)</label>
+          <input id="r" placeholder="integer or 0x hex" />
+        </div>
+        <div class="field">
+          <label>Signature s1</label>
+          <input id="s1" placeholder="integer or 0x hex" />
+        </div>
+        <div class="field">
+          <label>Signature s2</label>
+          <input id="s2" placeholder="integer or 0x hex" />
+        </div>
+      </div>
+
+      <div class="error-card" id="err"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runAttack()">
+          <i class="ti ti-player-play"></i> Recover nonce k and private key d
+        </button>
+        <button class="btn" onclick="fillDemo()">
+          <i class="ti ti-download" style="font-size:13px"></i> Load demo values
+        </button>
+        <button class="btn" onclick="clearAll()">
+          <i class="ti ti-refresh"></i> Clear
+        </button>
+      </div>
+
+      <div class="results" id="results">
+        <div class="result-grid">
+          <div class="result-card nonce">
+            <div class="result-label"><i class="ti ti-key" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Recovered nonce k</div>
+            <div class="result-val nonce-val" id="out-k"></div>
+          </div>
+          <div class="result-card key">
+            <div class="result-label"><i class="ti ti-lock-open" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Private key d (decimal)</div>
+            <div class="result-val" id="out-d"></div>
+          </div>
+          <div class="result-card key">
+            <div class="result-label"><i class="ti ti-lock-open" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Private key d (hex)</div>
+            <div class="result-val hex-val" id="out-dhex"></div>
+          </div>
+          <div class="result-card ascii" id="ascii-wrap">
+            <div class="result-label"><i class="ti ti-letter-a" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>ASCII decode attempt</div>
+            <div class="result-val ascii-val" id="out-ascii"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ HOW IT WORKS PAGE ══════════════ -->
+    <div class="page" id="page-how">
+      <div class="page-header">
+        <h1>How the Attack Works</h1>
+        <p>A mathematical breakdown of why nonce reuse in ECDSA completely breaks key secrecy.</p>
+      </div>
+
+      <div class="section">
+        <h2>ECDSA signature scheme</h2>
+        <p class="prose">To sign a message with hash h, a signer picks a random nonce k, computes a curve point R = k·G, sets r = R.x mod n, then computes s = k⁻¹(h + r·d) mod n where d is the private key. The signature is the pair (r, s).</p>
+        <p class="prose">The critical assumption is that k is unique and unpredictable for every signature. If two signatures share k, r will be identical — a directly observable signal that the nonce was reused.</p>
+      </div>
+
+      <div class="section">
+        <h2>The math of key recovery</h2>
+        <div class="formula-box"><span class="f-muted">Given two signatures with the same nonce k:</span>
+
+s₁ = k⁻¹(h₁ + r·d) mod n    <span class="f-muted">← equation 1</span>
+s₂ = k⁻¹(h₂ + r·d) mod n    <span class="f-muted">← equation 2</span>
+
+<span class="f-muted">Subtract to eliminate d:</span>
+s₁ − s₂ = k⁻¹(h₁ − h₂) mod n
+
+<span class="f-muted">Rearrange for k:</span>
+<span class="f-amber">k = (h₁ − h₂) · (s₁ − s₂)⁻¹ mod n</span>    <span class="f-muted">← nonce recovered</span>
+
+<span class="f-muted">Substitute k back to solve for d:</span>
+<span class="f-red">d = (s₁·k − h₁) · r⁻¹ mod n</span>             <span class="f-muted">← private key recovered</span></div>
+      </div>
+
+      <div class="section">
+        <h2>Attack flow</h2>
+        <p class="prose">An attacker only needs two publicly visible signatures and the message hashes — all information available on a blockchain or in signed network traffic.</p>
+        <div class="flow">
+          <span class="flow-step" style="background:var(--blue-bg);color:var(--blue)">Observe (r, s₁)</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step" style="background:var(--blue-bg);color:var(--blue)">Observe (r, s₂)</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step" style="background:var(--amber-bg);color:var(--amber)">Same r detected</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step" style="background:var(--red-bg);color:var(--red)">Solve for k</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step" style="background:var(--red-bg);color:var(--red)">Solve for d</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Real-world incidents</h2>
+        <p class="prose"><strong style="color:var(--text)">PlayStation 3 (2010)</strong> — Sony used a constant k for all firmware signatures. Fail0verflow published the master signing key, enabling piracy and homebrew. Fixed by switching to HMAC-DRBG.</p>
+        <p class="prose"><strong style="color:var(--text)">Bitcoin wallet thefts</strong> — Multiple wallets using weak RNGs produced repeated r values on the blockchain. Researchers and attackers scanned the blockchain and drained funds from vulnerable addresses.</p>
+        <p class="prose"><strong style="color:var(--text)">Android SecureRandom bug (2013)</strong> — Java's SecureRandom on Android was insufficiently seeded, producing repeated nonces in Bitcoin signing code. Google issued an emergency patch.</p>
+      </div>
+    </div>
+
+    <!-- ══════════════ MITIGATION PAGE ══════════════ -->
+    <div class="page" id="page-mitigate">
+      <div class="page-header">
+        <h1>Mitigation Strategies</h1>
+        <p>How to prevent nonce reuse in ECDSA — from best-practice library usage to architectural alternatives.</p>
+      </div>
+
+      <div class="mit-card">
+        <div class="mit-header">
+          <span class="badge badge-success">Best practice</span>
+          <div class="mit-title">RFC 6979 — Deterministic nonce generation</div>
+        </div>
+        <div class="mit-desc">Derive k deterministically from the private key and message hash using HMAC-DRBG. The same inputs always produce the same k, but k is unique per (key, message) pair — making accidental reuse impossible by construction. Most modern crypto libraries implement this by default.</div>
+        <div class="code-block"><span class="c-comment"># Python — cryptography library (uses RFC 6979 by default)</span>
+<span class="c-kw">from</span> cryptography.hazmat.primitives.asymmetric <span class="c-kw">import</span> ec
+<span class="c-kw">from</span> cryptography.hazmat.primitives <span class="c-kw">import</span> hashes
+
+key = ec.<span class="c-fn">generate_private_key</span>(ec.SECP256K1())
+<span class="c-comment"># k is deterministically derived — nonce reuse is impossible</span>
+sig = key.<span class="c-fn">sign</span>(message, ec.<span class="c-fn">ECDSA</span>(hashes.<span class="c-fn">SHA256</span>()))</div>
+      </div>
+
+      <div class="mit-card">
+        <div class="mit-header">
+          <span class="badge badge-info">Recommended alternative</span>
+          <div class="mit-title">EdDSA / Ed25519 — nonce reuse attack surface eliminated</div>
+        </div>
+        <div class="mit-desc">Ed25519 uses a hash-based deterministic nonce by design — the vulnerability class doesn't exist. Preferred for new protocols: SSH keys, TLS 1.3, Signal Protocol, WireGuard.</div>
+        <div class="code-block"><span class="c-comment"># Python — Ed25519 (deterministic, no nonce reuse possible)</span>
+<span class="c-kw">from</span> cryptography.hazmat.primitives.asymmetric.ed25519 <span class="c-kw">import</span> Ed25519PrivateKey
+
+key = Ed25519PrivateKey.<span class="c-fn">generate</span>()
+sig = key.<span class="c-fn">sign</span>(message)   <span class="c-comment"># safe by design</span>
+
+<span class="c-comment"># Node.js</span>
+<span class="c-kw">const</span> { generateKeyPairSync, sign } = <span class="c-fn">require</span>(<span class="c-str">'crypto'</span>);
+<span class="c-kw">const</span> { privateKey } = <span class="c-fn">generateKeyPairSync</span>(<span class="c-str">'ed25519'</span>);
+<span class="c-kw">const</span> sig = <span class="c-fn">sign</span>(<span class="c-kw">null</span>, message, privateKey);</div>
+      </div>
+
+      <div class="mit-card">
+        <div class="mit-header">
+          <span class="badge badge-warn">Defense in depth</span>
+          <div class="mit-title">CSPRNG entropy validation</div>
+        </div>
+        <div class="mit-desc">If you must generate k randomly, use OS-level entropy sources. Never seed with timestamps, PIDs, or predictable values. Validate entropy at startup.</div>
+        <div class="code-block"><span class="c-comment"># Python — always use secrets or os.urandom for key material</span>
+<span class="c-kw">import</span> secrets
+k_bytes = secrets.<span class="c-fn">token_bytes</span>(32)   <span class="c-comment"># CSPRNG, not random.random()</span>
+
+<span class="c-comment"># Node.js</span>
+<span class="c-kw">const</span> k = crypto.<span class="c-fn">randomBytes</span>(32);   <span class="c-comment"># not Math.random()</span></div>
+      </div>
+
+      <div class="mit-card">
+        <div class="mit-header">
+          <span class="badge badge-warn">Detection</span>
+          <div class="mit-title">Signature audit — detect duplicate r values</div>
+        </div>
+        <div class="mit-desc">Maintain a log of emitted signatures. Alert immediately on any repeated r value — it's an unambiguous sign of nonce reuse. On a blockchain, duplicate r values are publicly auditable.</div>
+        <div class="code-block"><span class="c-comment"># Simple duplicate-r detector</span>
+seen_r = <span class="c-fn">set</span>()
+
+<span class="c-kw">def</span> <span class="c-fn">check_signature</span>(r, s):
+    <span class="c-kw">if</span> r <span class="c-kw">in</span> seen_r:
+        <span class="c-fn">raise</span> SecurityException(<span class="c-str">"Duplicate r — nonce reuse detected!"</span>)
+    seen_r.<span class="c-fn">add</span>(r)</div>
+      </div>
+    </div>
+
+    <!-- ══════════════ REFERENCES PAGE ══════════════ -->
+    <div class="page" id="page-refs">
+      <div class="page-header">
+        <h1>References</h1>
+        <p>Academic papers, RFCs, and incident reports used in this project.</p>
+      </div>
+
+      <div class="section">
+        <h2>Standards</h2>
+        <div class="mit-card">
+          <div class="mit-title" style="margin-bottom:6px">RFC 6979 — Deterministic Usage of the DSA and ECDSA</div>
+          <div class="mit-desc">T. Pornin (2013). Defines HMAC-DRBG-based deterministic nonce generation for DSA and ECDSA.<br><a href="https://tools.ietf.org/html/rfc6979" style="color:var(--blue);font-size:13px;font-family:var(--sans)">tools.ietf.org/html/rfc6979</a></div>
+        </div>
+        <div class="mit-card">
+          <div class="mit-title" style="margin-bottom:6px">FIPS 186-5 — Digital Signature Standard</div>
+          <div class="mit-desc">NIST (2023). Authoritative specification for ECDSA.<br><a href="https://csrc.nist.gov/publications/detail/fips/186/5/final" style="color:var(--blue);font-size:13px;font-family:var(--sans)">csrc.nist.gov</a></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Incident reports</h2>
+        <div class="mit-card">
+          <div class="mit-title" style="margin-bottom:6px">PlayStation 3 ECDSA Key Exposure (2010)</div>
+          <div class="mit-desc">fail0verflow — 27C3 talk: "Console Hacking 2010: PS3 Epic Fail". Demonstrated constant-nonce key recovery.</div>
+        </div>
+        <div class="mit-card">
+          <div class="mit-title" style="margin-bottom:6px">Android SecureRandom Vulnerability (2013)</div>
+          <div class="mit-desc">Bitcoin.org advisory on Java SecureRandom weak seeding causing nonce reuse in Android Bitcoin wallets.<br><a href="https://bitcoin.org/en/alert/2013-08-11-android" style="color:var(--blue);font-size:13px;font-family:var(--sans)">bitcoin.org/en/alert/2013-08-11-android</a></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Academic reading</h2>
+        <div class="mit-card">
+          <div class="mit-title" style="margin-bottom:6px">Breitner & Heninger (2019)</div>
+          <div class="mit-desc">"Biased Nonce Sense: Lattice Attacks Against Weak ECDSA Signatures in Cryptocurrencies" — USENIX Security 2019. Shows that even biased (not fully reused) nonces enable key recovery via lattice methods.</div>
+        </div>
+        <div class="mit-card">
+          <div class="mit-title" style="margin-bottom:6px">Johnson, Menezes & Vanstone (2001)</div>
+          <div class="mit-desc">"The Elliptic Curve Digital Signature Algorithm (ECDSA)" — International Journal of Information Security. Original comprehensive analysis of the scheme.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+  const CURVES = {
+    secp256k1: {
+      name: 'secp256k1',
+      n: '115792089237316195423570985008687907852837564279074904382605163141518161494337',
+      hex: '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141',
+      bits: 256,
+      desc: 'Used by Bitcoin and Ethereum'
+    },
+    p256: {
+      name: 'P-256 (secp256r1)',
+      n: '115792089210356248762697446949407573529996955224135760342422259061068512044369',
+      hex: '0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551',
+      bits: 256,
+      desc: 'NIST standard, used in TLS/HTTPS'
+    },
+    p384: {
+      name: 'P-384 (secp384r1)',
+      n: '39402006196394479212279040100143613805079739270465446667946905279627659399113263569398956308152294913554433653942643',
+      hex: '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC7634D81F4372DDF581A0DB248B0A77AECEC196ACCC52973',
+      bits: 384,
+      desc: 'NSA Suite B, government use'
+    },
+    p521: {
+      name: 'P-521 (secp521r1)',
+      n: '6864797660130609714981900799081393217269435300143305409394463459185543183397655394245057746333217197532963996371363321113864768612440380340372808892707005449',
+      hex: '0x01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA51868783BF2F966B7FCC0148F709A5D03BB5C9B8899C47AEBB6FB71E91386409',
+      bits: 521,
+      desc: 'Highest security NIST curve'
+    },
+    secp192k1: {
+      name: 'secp192k1',
+      n: '6277101735386680763835789423176059013767194773182842284081',
+      hex: '0xFFFFFFFFFFFFFFFFFFFFFFFE26F2FC170F69466A74DEFD8D',
+      bits: 192,
+      desc: 'Legacy / embedded / IoT use'
+    },
+    custom: {
+      name: 'Custom',
+      n: '',
+      hex: '',
+      bits: null,
+      desc: 'Enter n manually below'
+    }
+  };
+
+  function selectCurve(key, btn) {
+    document.querySelectorAll('.curve-card').forEach(c => c.classList.remove('selected'));
+    btn.classList.add('selected');
+
+    const curve = CURVES[key];
+    const nInput = document.getElementById('n');
+    const preview = document.getElementById('curve-preview');
+    const previewVal = document.getElementById('curve-preview-val');
+    const nSource = document.getElementById('n-source');
+
+    if (key === 'custom') {
+      nInput.value = '';
+      nInput.placeholder = 'enter curve order n manually';
+      nInput.readOnly = false;
+      preview.className = 'curve-n-preview';
+      nSource.textContent = '(manual entry)';
+    } else {
+      nInput.value = curve.n;
+      nInput.readOnly = false;
+      previewVal.textContent = curve.hex + '\n= ' + curve.n;
+      preview.className = 'curve-n-preview show';
+      nSource.textContent = '← auto-filled from ' + curve.name;
+    }
+  }
+
+  function showPage(name, btn) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  function parseBig(val) {
+    return BigInt(val.trim());
+  }
+
+  function modInv(a, n) {
+    let [old_r, r] = [a, n];
+    let [old_s, s] = [1n, 0n];
+    while (r !== 0n) {
+      const q = old_r / r;
+      [old_r, r] = [r, old_r - q * r];
+      [old_s, s] = [s, old_s - q * s];
+    }
+    return ((old_s % n) + n) % n;
+  }
+
+  function fillDemo() {
+    // Auto-select secp256k1
+    const secp = document.querySelector('.curve-card');
+    selectCurve('secp256k1', secp);
+    document.getElementById('h1').value = '34729342877868177841744413083927858329';
+    document.getElementById('h2').value = '91028374651928374619283746512938476512';
+    document.getElementById('r').value  = '72394827346129834761293847612983476234';
+    document.getElementById('s1').value = '48273649182736491827364918273649182736';
+    document.getElementById('s2').value = '61827364918273649182736491827364918273';
+  }
+
+  function clearAll() {
+    ['h1','h2','r','s1','s2'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('n').value = '';
+    document.getElementById('n-source').textContent = '';
+    document.querySelectorAll('.curve-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('curve-preview').className = 'curve-n-preview';
+    document.getElementById('results').className = 'results';
+    document.getElementById('err').className = 'error-card';
+  }
+
+  function runAttack() {
+    const errEl = document.getElementById('err');
+    const resEl = document.getElementById('results');
+    errEl.className = 'error-card';
+    resEl.className = 'results';
+
+    try {
+      const n  = parseBig(document.getElementById('n').value);
+      const h1 = parseBig(document.getElementById('h1').value);
+      const h2 = parseBig(document.getElementById('h2').value);
+      const r  = parseBig(document.getElementById('r').value);
+      const s1 = parseBig(document.getElementById('s1').value);
+      const s2 = parseBig(document.getElementById('s2').value);
+
+      const s_diff = ((s1 - s2) % n + n) % n;
+      if (s_diff === 0n) throw new Error('s1 and s2 are equal — no nonce reuse detectable, or signatures are identical.');
+
+      const h_diff = ((h1 - h2) % n + n) % n;
+      const k = (h_diff * modInv(s_diff, n)) % n;
+      const d_raw = ((s1 * k - h1) % n * modInv(r, n)) % n;
+      const d = ((d_raw % n) + n) % n;
+
+      document.getElementById('out-k').textContent = k.toString();
+      document.getElementById('out-d').textContent = d.toString();
+      const dhex = d.toString(16);
+      document.getElementById('out-dhex').textContent = '0x' + dhex;
+
+      let ascii = '[not printable ASCII]';
+      try {
+        const hex = dhex.length % 2 ? '0' + dhex : dhex;
+        let s = '';
+        for (let i = 0; i < hex.length; i += 2)
+          s += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+        if ([...s].every(c => c.charCodeAt(0) >= 32 && c.charCodeAt(0) < 127)) ascii = s;
+      } catch {}
+      document.getElementById('out-ascii').textContent = ascii;
+      resEl.className = 'results show';
+    } catch(e) {
+      errEl.textContent = 'Error: ' + e.message;
+      errEl.className = 'error-card show';
+    }
+  }
+</script>
+</body>
+</html>
