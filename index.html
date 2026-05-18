@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ECDSA Nonce Reuse Attack — Educational Tool</title>
+  <meta name="description" content="Educational ECDSA nonce reuse private key recovery demo with test vectors, validation, and offline support." />
+  <meta name="theme-color" content="#0f0f0f" />
+  <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -107,6 +110,17 @@
     .page-header { margin-bottom: 2rem; }
     .page-header h1 { font-size: 20px; font-weight: 500; margin-bottom: 6px; font-family: var(--sans); }
     .page-header p { font-size: 13px; color: var(--text2); font-family: var(--sans); line-height: 1.6; }
+    .notice {
+      background: var(--amber-bg);
+      border: 0.5px solid rgba(250,199,117,0.28);
+      border-radius: var(--radius);
+      color: var(--amber);
+      font-family: var(--sans);
+      font-size: 12px;
+      line-height: 1.6;
+      margin-bottom: 1.25rem;
+      padding: 0.85rem 1rem;
+    }
 
     /* ── Curve selector ── */
     .curve-selector { margin-bottom: 1.5rem; }
@@ -151,6 +165,8 @@
     }
     .field input:focus { outline: none; border-color: var(--border2); }
     .field input::placeholder { color: var(--text3); }
+    .field input.invalid { border-color: var(--red); background: rgba(226,75,74,0.06); }
+    .field-hint { min-height: 14px; color: var(--red); font-size: 11px; font-family: var(--sans); line-height: 1.4; }
     .full { grid-column: 1 / -1; }
 
     .btn {
@@ -182,11 +198,37 @@
     .result-card.nonce { border-color: var(--amber); }
     .result-card.key { border-color: var(--red); }
     .result-card.ascii { border-color: var(--teal); }
-    .result-label { font-size: 10px; color: var(--text2); font-family: var(--sans); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .result-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+    .result-label { font-size: 10px; color: var(--text2); font-family: var(--sans); text-transform: uppercase; letter-spacing: 0.08em; }
     .result-val { font-size: 13px; color: var(--text); word-break: break-all; line-height: 1.7; }
     .result-val.hex-val { color: var(--red); }
     .result-val.ascii-val { color: var(--teal); }
     .result-val.nonce-val { color: var(--amber); }
+    .mini-btn {
+      border: 0.5px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+    .mini-btn:hover { color: var(--text); background: var(--bg3); }
+    .result-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .demo-note {
+      display: none;
+      color: var(--green);
+      background: var(--green-bg);
+      border: 0.5px solid rgba(99,153,34,0.25);
+      border-radius: var(--radius);
+      font-family: var(--sans);
+      font-size: 12px;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+    }
+    .demo-note.show { display: block; }
 
     .error-card {
       background: var(--red-bg); border: 0.5px solid rgba(226,75,74,0.3);
@@ -267,7 +309,7 @@
     <div class="nav-section">
       <div class="nav-label">Tool</div>
       <button class="nav-item active" onclick="showPage('attack', this)">
-        <i class="ti ti-terminal-2"></i> Attack Tool
+        <i class="ti ti-terminal-2"></i> Recovery Demo
       </button>
     </div>
     <div class="nav-section">
@@ -291,6 +333,9 @@
       <div class="page-header">
         <h1>Private Key Recovery</h1>
         <p>Select a curve to auto-fill the order n, then enter the two signatures that share the same nonce k. The tool recovers k and the private key d.</p>
+      </div>
+      <div class="notice">
+        Educational and defensive use only. Run the demo test vector to see the math, then compare your own signatures only when you have permission.
       </div>
 
       <!-- Step 1: Curve selector -->
@@ -346,29 +391,36 @@
         <div class="field full">
           <label>Curve order n <span id="n-source" style="color:var(--blue);font-size:10px;margin-left:6px"></span></label>
           <input id="n" placeholder="select a curve above, or enter manually" />
+          <div class="field-hint" id="hint-n"></div>
         </div>
         <div class="field">
           <label>Message hash h1</label>
           <input id="h1" placeholder="integer or 0x hex" />
+          <div class="field-hint" id="hint-h1"></div>
         </div>
         <div class="field">
           <label>Message hash h2</label>
           <input id="h2" placeholder="integer or 0x hex" />
+          <div class="field-hint" id="hint-h2"></div>
         </div>
         <div class="field full">
           <label>Shared r value (same nonce → same r)</label>
           <input id="r" placeholder="integer or 0x hex" />
+          <div class="field-hint" id="hint-r"></div>
         </div>
         <div class="field">
           <label>Signature s1</label>
           <input id="s1" placeholder="integer or 0x hex" />
+          <div class="field-hint" id="hint-s1"></div>
         </div>
         <div class="field">
           <label>Signature s2</label>
           <input id="s2" placeholder="integer or 0x hex" />
+          <div class="field-hint" id="hint-s2"></div>
         </div>
       </div>
 
+      <div class="demo-note" id="demo-note"></div>
       <div class="error-card" id="err"></div>
 
       <div class="btn-row">
@@ -376,7 +428,10 @@
           <i class="ti ti-player-play"></i> Recover nonce k and private key d
         </button>
         <button class="btn" onclick="fillDemo()">
-          <i class="ti ti-download" style="font-size:13px"></i> Load demo values
+          <i class="ti ti-download" style="font-size:13px"></i> Load test vector
+        </button>
+        <button class="btn" onclick="runDemo()">
+          <i class="ti ti-bolt" style="font-size:13px"></i> Demo + explain
         </button>
         <button class="btn" onclick="clearAll()">
           <i class="ti ti-refresh"></i> Clear
@@ -386,21 +441,34 @@
       <div class="results" id="results">
         <div class="result-grid">
           <div class="result-card nonce">
-            <div class="result-label"><i class="ti ti-key" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Recovered nonce k</div>
+            <div class="result-top">
+              <div class="result-label"><i class="ti ti-key" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Recovered nonce k</div>
+              <button class="mini-btn" onclick="copyResult('out-k', this)">Copy</button>
+            </div>
             <div class="result-val nonce-val" id="out-k"></div>
           </div>
           <div class="result-card key">
-            <div class="result-label"><i class="ti ti-lock-open" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Private key d (decimal)</div>
+            <div class="result-top">
+              <div class="result-label"><i class="ti ti-lock-open" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Private key d (decimal)</div>
+              <button class="mini-btn" onclick="copyResult('out-d', this)">Copy</button>
+            </div>
             <div class="result-val" id="out-d"></div>
           </div>
           <div class="result-card key">
-            <div class="result-label"><i class="ti ti-lock-open" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Private key d (hex)</div>
+            <div class="result-top">
+              <div class="result-label"><i class="ti ti-lock-open" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Private key d (hex)</div>
+              <button class="mini-btn" onclick="copyResult('out-dhex', this)">Copy</button>
+            </div>
             <div class="result-val hex-val" id="out-dhex"></div>
           </div>
           <div class="result-card ascii" id="ascii-wrap">
             <div class="result-label"><i class="ti ti-letter-a" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>ASCII decode attempt</div>
             <div class="result-val ascii-val" id="out-ascii"></div>
           </div>
+        </div>
+        <div class="result-actions">
+          <button class="btn" onclick="copyReport()"><i class="ti ti-copy"></i> Copy report</button>
+          <button class="btn" onclick="downloadReport()"><i class="ti ti-file-download"></i> Download report</button>
         </div>
       </div>
     </div>
@@ -456,6 +524,12 @@ s₁ − s₂ = k⁻¹(h₁ − h₂) mod n
         <p class="prose"><strong style="color:var(--text)">PlayStation 3 (2010)</strong> — Sony used a constant k for all firmware signatures. Fail0verflow published the master signing key, enabling piracy and homebrew. Fixed by switching to HMAC-DRBG.</p>
         <p class="prose"><strong style="color:var(--text)">Bitcoin wallet thefts</strong> — Multiple wallets using weak RNGs produced repeated r values on the blockchain. Researchers and attackers scanned the blockchain and drained funds from vulnerable addresses.</p>
         <p class="prose"><strong style="color:var(--text)">Android SecureRandom bug (2013)</strong> — Java's SecureRandom on Android was insufficiently seeded, producing repeated nonces in Bitcoin signing code. Google issued an emergency patch.</p>
+      </div>
+
+      <div class="section">
+        <h2>What to look for</h2>
+        <p class="prose">In real audits, start by grouping signatures by public key and r value. A repeated r value under the same public key is the practical warning sign for nonce reuse. Biased or partially leaked nonces are harder to detect and usually require lattice analysis, but exact reuse is enough for the direct formulas shown here.</p>
+        <p class="prose">The built-in test vector uses a known private key and nonce, then generates two valid s values. The recovered output should match the expected k and d shown after loading the vector.</p>
       </div>
     </div>
 
@@ -622,6 +696,18 @@ seen_r = <span class="c-fn">set</span>()
     }
   };
 
+  const INPUT_IDS = ['n', 'h1', 'h2', 'r', 's1', 's2'];
+  const DEMO_VECTOR = {
+    h1: '34729342877868177841744413083927858329',
+    h2: '91028374651928374619283746512938476512',
+    r: '112233445566778899112233445566778899',
+    s1: '69440697514136948669114636734811491474820095774095797734893856324352930991484',
+    s2: '6345389536927264460168347451844513374505984284312860062201821372683846127419',
+    expectedK: '987654321987654321',
+    expectedD: '123456789123456789123456789'
+  };
+  let lastReport = '';
+
   function selectCurve(key, btn) {
     document.querySelectorAll('.curve-card').forEach(c => c.classList.remove('selected'));
     btn.classList.add('selected');
@@ -655,17 +741,54 @@ seen_r = <span class="c-fn">set</span>()
   }
 
   function parseBig(val) {
-    return BigInt(val.trim());
+    const raw = val.trim().replace(/_/g, '');
+    if (!raw) throw new Error('empty');
+    if (/^0x[0-9a-f]+$/i.test(raw)) return BigInt(raw);
+    if (/^[0-9]+$/.test(raw)) return BigInt(raw);
+    throw new Error('use decimal digits or 0x-prefixed hex');
+  }
+
+  function readField(id, label) {
+    const input = document.getElementById(id);
+    const hint = document.getElementById('hint-' + id);
+    input.classList.remove('invalid');
+    if (hint) hint.textContent = '';
+    try {
+      return parseBig(input.value);
+    } catch (e) {
+      input.classList.add('invalid');
+      if (hint) hint.textContent = label + ': ' + e.message;
+      throw new Error(label + ' must be a decimal integer or 0x-prefixed hex value.');
+    }
+  }
+
+  function validateRange(id, value, n, label) {
+    const input = document.getElementById(id);
+    const hint = document.getElementById('hint-' + id);
+    if (value <= 0n || value >= n) {
+      input.classList.add('invalid');
+      if (hint) hint.textContent = label + ' must be in the range 1..n-1.';
+      throw new Error(label + ' must be greater than 0 and less than curve order n.');
+    }
+  }
+
+  function clearValidation() {
+    INPUT_IDS.forEach(id => {
+      document.getElementById(id).classList.remove('invalid');
+      const hint = document.getElementById('hint-' + id);
+      if (hint) hint.textContent = '';
+    });
   }
 
   function modInv(a, n) {
-    let [old_r, r] = [a, n];
+    let [old_r, r] = [((a % n) + n) % n, n];
     let [old_s, s] = [1n, 0n];
     while (r !== 0n) {
       const q = old_r / r;
       [old_r, r] = [r, old_r - q * r];
       [old_s, s] = [s, old_s - q * s];
     }
+    if (old_r !== 1n) throw new Error('No modular inverse exists for one input. Check that values are valid for this curve order.');
     return ((old_s % n) + n) % n;
   }
 
@@ -673,11 +796,18 @@ seen_r = <span class="c-fn">set</span>()
     // Auto-select secp256k1
     const secp = document.querySelector('.curve-card');
     selectCurve('secp256k1', secp);
-    document.getElementById('h1').value = '34729342877868177841744413083927858329';
-    document.getElementById('h2').value = '91028374651928374619283746512938476512';
-    document.getElementById('r').value  = '72394827346129834761293847612983476234';
-    document.getElementById('s1').value = '48273649182736491827364918273649182736';
-    document.getElementById('s2').value = '61827364918273649182736491827364918273';
+    ['h1','h2','r','s1','s2'].forEach(id => document.getElementById(id).value = DEMO_VECTOR[id]);
+    clearValidation();
+    document.getElementById('demo-note').textContent =
+      'Loaded a known secp256k1 test vector. Expected k = ' + DEMO_VECTOR.expectedK +
+      ' and expected d = ' + DEMO_VECTOR.expectedD + '.';
+    document.getElementById('demo-note').className = 'demo-note show';
+    document.getElementById('err').className = 'error-card';
+  }
+
+  function runDemo() {
+    fillDemo();
+    runAttack(true);
   }
 
   function clearAll() {
@@ -688,21 +818,30 @@ seen_r = <span class="c-fn">set</span>()
     document.getElementById('curve-preview').className = 'curve-n-preview';
     document.getElementById('results').className = 'results';
     document.getElementById('err').className = 'error-card';
+    document.getElementById('demo-note').className = 'demo-note';
+    clearValidation();
   }
 
-  function runAttack() {
+  function runAttack(isDemo = false) {
     const errEl = document.getElementById('err');
     const resEl = document.getElementById('results');
     errEl.className = 'error-card';
     resEl.className = 'results';
+    lastReport = '';
+    clearValidation();
 
     try {
-      const n  = parseBig(document.getElementById('n').value);
-      const h1 = parseBig(document.getElementById('h1').value);
-      const h2 = parseBig(document.getElementById('h2').value);
-      const r  = parseBig(document.getElementById('r').value);
-      const s1 = parseBig(document.getElementById('s1').value);
-      const s2 = parseBig(document.getElementById('s2').value);
+      const n  = readField('n', 'Curve order n');
+      const h1 = readField('h1', 'Message hash h1');
+      const h2 = readField('h2', 'Message hash h2');
+      const r  = readField('r', 'Shared r value');
+      const s1 = readField('s1', 'Signature s1');
+      const s2 = readField('s2', 'Signature s2');
+
+      if (n <= 2n) throw new Error('Curve order n must be greater than 2.');
+      validateRange('r', r, n, 'Shared r value');
+      validateRange('s1', s1, n, 'Signature s1');
+      validateRange('s2', s2, n, 'Signature s2');
 
       const s_diff = ((s1 - s2) % n + n) % n;
       if (s_diff === 0n) throw new Error('s1 and s2 are equal — no nonce reuse detectable, or signatures are identical.');
@@ -726,11 +865,85 @@ seen_r = <span class="c-fn">set</span>()
         if ([...s].every(c => c.charCodeAt(0) >= 32 && c.charCodeAt(0) < 127)) ascii = s;
       } catch {}
       document.getElementById('out-ascii').textContent = ascii;
+      lastReport = buildReport({ n, h1, h2, r, s1, s2, k, d, dhex, ascii });
+      if (isDemo && (k.toString() !== DEMO_VECTOR.expectedK || d.toString() !== DEMO_VECTOR.expectedD)) {
+        throw new Error('Demo test vector did not match expected output.');
+      }
       resEl.className = 'results show';
     } catch(e) {
       errEl.textContent = 'Error: ' + e.message;
       errEl.className = 'error-card show';
     }
+  }
+
+  function buildReport(values) {
+    return [
+      'ECDSA nonce reuse recovery report',
+      '',
+      'n  = ' + values.n,
+      'h1 = ' + values.h1,
+      'h2 = ' + values.h2,
+      'r  = ' + values.r,
+      's1 = ' + values.s1,
+      's2 = ' + values.s2,
+      '',
+      'Recovered nonce k = ' + values.k,
+      'Private key d     = ' + values.d,
+      'Private key d hex = 0x' + values.dhex,
+      'ASCII attempt     = ' + values.ascii,
+      '',
+      'Formula:',
+      'k = (h1 - h2) * inverse(s1 - s2) mod n',
+      'd = (s1 * k - h1) * inverse(r) mod n',
+      '',
+      'Educational and defensive use only.'
+    ].join('\n');
+  }
+
+  async function writeClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const area = document.createElement('textarea');
+      area.value = text;
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand('copy');
+      area.remove();
+    }
+  }
+
+  async function copyResult(id, btn) {
+    const text = document.getElementById(id).textContent.trim();
+    if (!text) return;
+    await writeClipboard(text);
+    const old = btn.textContent;
+    btn.textContent = 'Copied';
+    setTimeout(() => btn.textContent = old, 1200);
+  }
+
+  async function copyReport() {
+    if (!lastReport) runAttack();
+    if (!lastReport) return;
+    await writeClipboard(lastReport);
+  }
+
+  function downloadReport() {
+    if (!lastReport) runAttack();
+    if (!lastReport) return;
+    const blob = new Blob([lastReport], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'ecdsa-nonce-reuse-report.txt';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+    });
   }
 </script>
 </body>
