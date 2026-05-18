@@ -2,18 +2,27 @@
 
 A standalone browser-based tool for demonstrating how ECDSA private keys can be recovered when the same nonce is reused across signatures.
 
+## Use the tool
+
+Open the hosted version:
+
+[https://katiyar-crypto.github.io/ecdsa-nonce-reuse-tool/](https://katiyar-crypto.github.io/ecdsa-nonce-reuse-tool/)
+
+## Screenshots
+
+![ECDSA nonce reuse tool desktop UI](assets/screenshots/tool-overview.png)
+
+![ECDSA nonce reuse tool mobile UI](assets/screenshots/tool-mobile.png)
+
 ## Run locally
 
 Open `index.html` in a browser.
 
 ## GitHub Pages
 
-This project is static and can be hosted directly with GitHub Pages:
+This project includes a GitHub Pages workflow. After changes are pushed to `main`, GitHub Actions publishes the tool at:
 
-1. Push the repository to GitHub.
-2. Open the repository settings.
-3. Go to **Pages**.
-4. Set the source to the `main` branch and `/root`.
+[https://katiyar-crypto.github.io/ecdsa-nonce-reuse-tool/](https://katiyar-crypto.github.io/ecdsa-nonce-reuse-tool/)
 
 ## Note
 
