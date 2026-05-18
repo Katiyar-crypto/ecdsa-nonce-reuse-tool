@@ -18,3 +18,7 @@ This project is static and can be hosted directly with GitHub Pages:
 ## Note
 
 This tool is intended for educational and defensive security learning only.
+
+## License
+
+Licensed under the Apache License 2.0.
