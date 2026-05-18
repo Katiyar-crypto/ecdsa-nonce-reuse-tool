@@ -6,7 +6,7 @@
   <title>ECDSA Nonce Reuse Attack — Educational Tool</title>
   <meta name="description" content="Educational ECDSA nonce reuse private key recovery demo with test vectors, validation, and offline support." />
   <meta name="theme-color" content="#0f0f0f" />
-  <link rel="manifest" href="manifest.json" />
+  <link rel="manifest" href="manifest.json?v=3" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -294,7 +294,7 @@
 <body>
 
 <header>
-  <div class="logo"><img src="assets/icon.svg" alt="ECDSA Nonce Reuse Tool logo" /></div>
+  <div class="logo"><img src="assets/icon.svg?v=3" alt="ECDSA Nonce Reuse Tool logo" /></div>
   <div>
     <div class="header-title">ECDSA Nonce Reuse Attack</div>
     <div class="header-sub">Private key recovery demonstration</div>
@@ -941,7 +941,7 @@ seen_r = <span class="c-fn">set</span>()
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+      navigator.serviceWorker.register('./service-worker.js?v=3').catch(() => {});
     });
   }
 </script>
